@@ -1,5 +1,7 @@
 # Local files
 .blog_env
+.env
+.env.local
 .DS_Store
 *.sqlite3
 **/__pycache__/
