@@ -1,4 +1,17 @@
+# Local files
 .blog_env
 .DS_Store
 *.sqlite3
 **/__pycache__/
+
+# .terraform/ contents (regenerated on init)
+.terraform/
+
+# State files with sensitive data
+*.tfstate
+*.tfstate.*
+.terraform.tfvars
+*.auto.tfvars
+
+# IDE
+.idea/
