@@ -1,0 +1,27 @@
+server {
+    listen 80;
+    server_name {{ allowed_hosts | join(' ') }};
+
+    # Max upload size and general settings
+    client_max_body_size 20M;
+
+    # Static files
+    location /static/ {
+        alias {{ static_root }}/;
+        expires 30d;
+        access_log off;
+    }
+
+    # Media files
+    location /media/ {
+        alias {{ media_root }}/;
+        expires 30d;
+        access_log off;
+    }
+
+    # Proxy to Gunicorn via Unix socket
+    location / {
+        include proxy_params;
+        proxy_pass http://unix:{{ gunicorn_socket }};
+    }
+}

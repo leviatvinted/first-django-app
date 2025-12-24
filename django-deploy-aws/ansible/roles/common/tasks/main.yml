@@ -1,0 +1,55 @@
+---
+# Role: common
+# OS-level setup for Django host
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install base packages
+  ansible.builtin.apt:
+    name:
+      - git
+      - python3-pip
+      - python3-venv
+      - libpq-dev
+      - build-essential
+    state: present
+
+- name: Set system timezone
+  ansible.builtin.timezone:
+    name: "{{ timezone }}"
+
+- name: Ensure app directory exists
+  ansible.builtin.file:
+    path: "{{ app_dir }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0755"
+
+- name: Ensure static directory exists
+  ansible.builtin.file:
+    path: "{{ static_root }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0755"
+
+- name: Ensure media directory exists
+  ansible.builtin.file:
+    path: "{{ media_root }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0755"
+
+- name: Create Python virtualenv
+  ansible.builtin.command:
+    cmd: "python3 -m venv {{ venv_path }}"
+    creates: "{{ venv_path }}/bin/activate"
+
+- name: Upgrade pip/setuptools/wheel in venv
+  ansible.builtin.command:
+    cmd: "{{ venv_path }}/bin/pip install --upgrade pip setuptools wheel"

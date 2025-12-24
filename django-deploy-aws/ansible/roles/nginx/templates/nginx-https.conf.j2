@@ -1,0 +1,62 @@
+# HTTPS configuration with Let's Encrypt
+# HTTP redirect
+server {
+    listen 80;
+    server_name {{ allowed_hosts | join(' ') }};
+
+    # ACME HTTP-01 challenge served via webroot
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+        default_type "text/plain";
+        try_files $uri =404;
+    }
+
+    # Redirect everything else to HTTPS
+    location / {
+        return 301 https://$server_name$request_uri;
+    }
+}
+
+# HTTPS configuration
+server {
+    listen 443 ssl http2;
+    server_name {{ allowed_hosts | join(' ') }};
+
+    # SSL certificates (Let's Encrypt)
+    ssl_certificate /etc/letsencrypt/live/{{ allowed_hosts[0] }}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{ allowed_hosts[0] }}/privkey.pem;
+
+    # SSL configuration
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+    ssl_dhparam /etc/nginx/dhparam.pem;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    # HSTS header (optional, enforce HTTPS)
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
+    # Max upload size and general settings
+    client_max_body_size 20M;
+
+    # Static files
+    location /static/ {
+        alias {{ static_root }}/;
+        expires 30d;
+        access_log off;
+    }
+
+    # Media files
+    location /media/ {
+        alias {{ media_root }}/;
+        expires 30d;
+        access_log off;
+    }
+
+    # Proxy to Gunicorn via Unix socket
+    location / {
+        include proxy_params;
+        proxy_pass http://unix:{{ gunicorn_socket }};
+    }
+}

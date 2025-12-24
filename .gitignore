@@ -6,14 +6,16 @@
 *.sqlite3
 **/__pycache__/
 
-# .terraform/ contents (regenerated on init)
+# Terraform files with secrets
 .terraform/
-
-# State files with sensitive data
+.terraform.lock.hcl
 *.tfstate
 *.tfstate.*
-.terraform.tfvars
+terraform.tfvars
 *.auto.tfvars
 
 # IDE
 .idea/
+
+# Ansible group vars with secrets
+django-deploy-aws/ansible/group_vars/webservers.yml

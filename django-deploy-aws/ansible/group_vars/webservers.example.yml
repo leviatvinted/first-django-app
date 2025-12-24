@@ -1,0 +1,42 @@
+# Example variables for the webservers group (no secrets)
+
+# Application settings
+app_name: blog_app
+app_user: ubuntu
+app_dir: /home/ubuntu/first-django-app
+venv_path: /home/ubuntu/venv
+repo_url: "https://github.com/your-org/first-django-app.git"
+django_project: Blog  # Django project module containing wsgi (Blog/wsgi.py)
+
+# Networking
+allowed_hosts:
+  - your-domain.com
+  - your-ec2-ip-or-sslip-hostname
+  - localhost
+  - 127.0.0.1
+
+# Static & Media
+static_root: /home/ubuntu/first-django-app/staticfiles
+media_root: /home/ubuntu/first-django-app/media
+static_url: /static/
+media_url: /media/
+
+# Database (provide via Vault or extra-vars at deploy time)
+db_engine: django.db.backends.postgresql
+db_host: your-rds-endpoint.amazonaws.com
+db_port: 5432
+db_name: blogdb
+db_user: bloguser
+# Do NOT commit the password here
+# db_password: "<provided at deploy time>"
+
+# Let's Encrypt email (optional)
+letsencrypt_email: "you@example.com"
+
+# Gunicorn service
+gunicorn_workers: 3
+gunicorn_socket: /tmp/gunicorn.sock
+
+# System
+ansible_python_interpreter: /usr/bin/python3
+timezone: UTC

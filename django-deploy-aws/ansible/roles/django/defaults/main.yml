@@ -1,0 +1,4 @@
+---
+# Defaults for django role
+repo_version: main
+debug: false

@@ -1,0 +1,8 @@
+---
+# Defaults for common role
+packages_common:
+  - git
+  - python3-pip
+  - python3-venv
+  - libpq-dev
+  - build-essential

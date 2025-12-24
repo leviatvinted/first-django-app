@@ -1,0 +1,60 @@
+---
+# Role: django
+# App-level setup and deployment
+
+- name: Clone application repository
+  ansible.builtin.git:
+    repo: "{{ repo_url }}"
+    dest: "{{ app_dir }}"
+    force: true
+
+- name: Generate SECRET_KEY
+  ansible.builtin.command:
+    cmd: "python3 -c \"import secrets; print(secrets.token_urlsafe(64))\""
+  register: django_secret_key_cmd
+  changed_when: false
+
+- name: Render application .env
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ app_dir }}/.env"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0600"
+  vars:
+    generated_secret_key: "{{ django_secret_key_cmd.stdout }}"
+
+- name: Install Python requirements in venv
+  ansible.builtin.command:
+    cmd: "{{ venv_path }}/bin/pip install -r requirements.txt"
+    chdir: "{{ app_dir }}"
+  register: pip_install
+  retries: 3
+  delay: 5
+  until: pip_install.rc == 0
+
+- name: Apply database migrations
+  ansible.builtin.command:
+    cmd: "{{ venv_path }}/bin/python manage.py migrate --noinput"
+    chdir: "{{ app_dir }}/blog_app"
+
+- name: Collect static files
+  ansible.builtin.command:
+    cmd: "{{ venv_path }}/bin/python manage.py collectstatic --noinput"
+    chdir: "{{ app_dir }}/blog_app"
+
+- name: Configure Gunicorn systemd service
+  ansible.builtin.template:
+    src: gunicorn.service.j2
+    dest: /etc/systemd/system/gunicorn.service
+    mode: "0644"
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Enable and restart Gunicorn
+  ansible.builtin.systemd:
+    name: gunicorn
+    state: restarted
+    enabled: true

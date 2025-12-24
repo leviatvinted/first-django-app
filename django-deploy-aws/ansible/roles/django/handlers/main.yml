@@ -1,0 +1,7 @@
+---
+# Handlers for django role
+- name: restart gunicorn
+  ansible.builtin.systemd:
+    name: gunicorn
+    state: restarted
+    enabled: true

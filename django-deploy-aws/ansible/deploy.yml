@@ -1,0 +1,15 @@
+---
+# Step 3.4: Main deployment playbook
+# Applies roles to configure the server and deploy the Django app
+
+- name: Deploy Django blog application
+  hosts: webservers
+  become: true
+  gather_facts: true
+
+  # Group variables from ansible/group_vars/webservers.yml are auto-loaded
+
+  roles:
+    - { role: common, tags: ["common"] }
+    - { role: django, tags: ["django"] }
+    - { role: nginx,  tags: ["nginx"] }

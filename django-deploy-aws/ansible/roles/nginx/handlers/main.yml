@@ -1,0 +1,19 @@
+---
+# Handlers for nginx role
+- name: restart nginx
+  ansible.builtin.systemd:
+    name: nginx
+    state: restarted
+    enabled: true
+
+- name: reload nginx
+  ansible.builtin.systemd:
+    name: nginx
+    state: reloaded
+    enabled: true
+
+- name: enable certbot auto-renewal
+  ansible.builtin.systemd:
+    name: certbot.timer
+    state: started
+    enabled: true

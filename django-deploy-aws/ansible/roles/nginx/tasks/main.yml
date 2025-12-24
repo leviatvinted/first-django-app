@@ -1,0 +1,116 @@
+---
+# Role: nginx
+# Install and configure Nginx to proxy to Gunicorn and serve static files
+
+- name: Install Nginx and Certbot
+  ansible.builtin.apt:
+    name:
+      - nginx
+      - certbot
+      - python3-certbot-nginx
+    state: present
+    update_cache: true
+
+- name: Deploy Nginx site config
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/sites-available/{{ app_name }}
+    mode: "0644"
+
+- name: Enable site
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/{{ app_name }}
+    dest: /etc/nginx/sites-enabled/{{ app_name }}
+    state: link
+    force: true
+
+- name: Disable default site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+
+# Nginx config test moved after HTTPS site configuration
+
+- name: Ensure certbot webroot exists
+  ansible.builtin.file:
+    path: /var/www/certbot
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install Let's Encrypt certificate (webroot)
+  ansible.builtin.command:
+    cmd: "certbot certonly --webroot -w /var/www/certbot --non-interactive --agree-tos -m {{ letsencrypt_email }} -d {{ allowed_hosts[0] }}"
+  register: certbot_result
+  failed_when: certbot_result.rc not in [0, 1]
+  changed_when: certbot_result.rc == 0
+  when:
+    - letsencrypt_email is defined
+    - allowed_hosts[0] != "localhost"
+    - allowed_hosts[0] != "127.0.0.1"
+    - allowed_hosts[0] is match('.*\\..*')
+
+- name: Check Let's Encrypt certificate presence
+  ansible.builtin.stat:
+    path: "/etc/letsencrypt/live/{{ allowed_hosts[0] }}/fullchain.pem"
+  register: le_cert
+  when:
+    - allowed_hosts[0] != "localhost"
+    - allowed_hosts[0] != "127.0.0.1"
+    - allowed_hosts[0] is match('.*\\..*')
+
+- name: Create dhparam file (for stronger SSL)
+  ansible.builtin.command:
+    cmd: "openssl dhparam -out /etc/nginx/dhparam.pem 2048"
+    creates: /etc/nginx/dhparam.pem
+
+- name: Deploy Nginx HTTPS config
+  ansible.builtin.template:
+    src: nginx-https.conf.j2
+    dest: /etc/nginx/sites-available/{{ app_name }}-https
+    mode: "0644"
+  when:
+    - allowed_hosts[0] != "localhost"
+    - allowed_hosts[0] != "127.0.0.1"
+    - allowed_hosts[0] is match('.*\\..*')
+    - le_cert is defined
+    - le_cert.stat is defined
+    - le_cert.stat.exists
+
+- name: Generate self-signed certificate
+  ansible.builtin.command:
+    cmd: "openssl req -x509 -nodes -newkey rsa:2048 -days 365 -keyout /etc/ssl/selfsigned.key -out /etc/ssl/selfsigned.crt -subj \"/CN={{ allowed_hosts[0] }}\""
+    creates: /etc/ssl/selfsigned.crt
+  when:
+    - le_cert is not defined or (le_cert.stat is not defined) or (not le_cert.stat.exists)
+
+- name: Deploy Nginx HTTPS config (self-signed)
+  ansible.builtin.template:
+    src: nginx-https-selfsigned.conf.j2
+    dest: /etc/nginx/sites-available/{{ app_name }}-https
+    mode: "0644"
+  when:
+    - le_cert is not defined or (le_cert.stat is not defined) or (not le_cert.stat.exists)
+
+- name: Enable HTTPS site
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/{{ app_name }}-https
+    dest: /etc/nginx/sites-enabled/{{ app_name }}-https
+    state: link
+    force: true
+  when:
+    - true
+
+- name: Test Nginx configuration (final)
+  ansible.builtin.command:
+    cmd: nginx -t
+  register: nginx_test
+  changed_when: false
+
+- name: Reload Nginx
+  ansible.builtin.systemd:
+    name: nginx
+    state: restarted
+    enabled: true
+

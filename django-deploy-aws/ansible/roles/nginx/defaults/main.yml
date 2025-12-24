@@ -1,0 +1,4 @@
+---
+# Defaults for nginx role
+# Optionally override server_name via group vars if needed
+nginx_server_name: "{{ allowed_hosts | join(' ') }}"

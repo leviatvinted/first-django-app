@@ -1,12 +1,12 @@
 terraform {
-    cloud {
-      organization = "leviatvinted-org"
+  cloud {
+    organization = "leviatvinted-org"
 
-      workspaces {
-        project = "Learn Terraform"
-        name = "learn-terraform-aws-get-started"
-      }
+    workspaces {
+      project = "First Django App"
+      name    = "first-django-app"
     }
+  }
 
 
   required_providers {

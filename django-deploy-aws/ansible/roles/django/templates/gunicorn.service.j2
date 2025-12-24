@@ -1,0 +1,14 @@
+[Unit]
+Description=Gunicorn daemon for {{ app_name }}
+After=network.target
+
+[Service]
+User={{ app_user }}
+Group={{ app_user }}
+WorkingDirectory={{ app_dir }}/blog_app
+Environment="PATH={{ venv_path }}/bin"
+EnvironmentFile={{ app_dir }}/.env
+ExecStart={{ venv_path }}/bin/gunicorn --workers {{ gunicorn_workers }} --bind unix:{{ gunicorn_socket }} {{ django_project }}.wsgi:application
+
+[Install]
+WantedBy=multi-user.target

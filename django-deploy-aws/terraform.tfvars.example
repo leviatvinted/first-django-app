@@ -1,0 +1,37 @@
+# Copy this file to terraform.tfvars and fill in your values
+# DO NOT COMMIT terraform.tfvars (it has secrets!)
+# 
+# terraform.tfvars is in .gitignore for security
+
+# Project Configuration
+project_name = "blog-app"
+environment  = "dev"
+aws_region   = "eu-north-1"
+
+# EC2 Configuration
+instance_name = "blog-web-server"
+instance_type = "t3.micro"
+
+# RDS Configuration
+rds_instance_type = "db.t3.micro"
+
+# Database Configuration
+# IMPORTANT: Change these to secure values!
+# Password must be 8+ characters and include uppercase, lowercase, numbers, special chars
+db_name     = "blogdb"
+db_username = "bloguser"
+db_password = "ChangeMe!123456"  # Change this to a secure password
+
+# SSH Configuration
+# REQUIRED: This is the name of your AWS SSH key pair
+# Create one in AWS EC2 → Key Pairs if you don't have one
+ssh_key_name = "your-key-pair-name"
+
+# Resource Tags
+tags = {
+  Project     = "blog-app"
+  Environment = "dev"
+  ManagedBy   = "terraform"
+  CreatedAt   = "2025-12-23"
+  Owner       = "your-name"
+}
