@@ -13,3 +13,26 @@
 ## Deployment Notes
 - Do not commit secrets. Use Ansible Vault or pass via `--extra-vars`.
 - Ensure `.env`, Terraform state/vars, and sensitive Ansible files are ignored (see [.gitignore](.gitignore)).
+
+## GitHub Actions
+
+### CI (tests)
+- Workflow: [./.github/workflows/ci.yml](.github/workflows/ci.yml)
+- Runs on pushes/PRs to `main`/`master`.
+- Installs `requirements.txt` and runs `python blog_app/manage.py test`.
+
+### Deploy (Ansible)
+- Workflow: [./.github/workflows/deploy.yml](.github/workflows/deploy.yml)
+- Triggers: push to `main` and manual `workflow_dispatch`.
+- Uses existing playbook at [django-deploy-aws/ansible/deploy.yml](django-deploy-aws/ansible/deploy.yml).
+
+Required repository secrets:
+- `SSH_PRIVATE_KEY`: Private key contents for the `ubuntu` user on the EC2 host (paste the PEM text; do not base64).
+- `SSH_USER` (optional, default `ubuntu`): SSH username.
+- `TARGET_HOST` (optional): IP or hostname to override inventory; if omitted, workflow uses [django-deploy-aws/ansible/hosts.ini](django-deploy-aws/ansible/hosts.ini).
+- `ANSIBLE_VAULT_PASSWORD` (only if you start using Vault): Provide via `ANSIBLE_VAULT_PASSWORD` and add `--vault-password-file` or `ANSIBLE_VAULT_PASSWORD_FILE` to the workflow as needed.
+
+Notes:
+- The workflow writes the `SSH_PRIVATE_KEY` to `~/.ssh/gh_actions.pem` and uses it via `--private-key`.
+- To override the host at dispatch time, provide the `target_host` input.
+- Ensure the target security group allows SSH (22), HTTP (80) and HTTPS (443) from the runner IPs.
