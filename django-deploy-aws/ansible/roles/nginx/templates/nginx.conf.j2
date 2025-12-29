@@ -5,6 +5,12 @@ server {
     # Max upload size and general settings
     client_max_body_size 20M;
 
+    # Certbot webroot for Let's Encrypt challenge
+    location /.well-known/acme-challenge/ {
+        alias /var/www/certbot/.well-known/acme-challenge/;
+        default_type text/plain;
+    }
+
     # Static files
     location /static/ {
         alias {{ static_root }}/;

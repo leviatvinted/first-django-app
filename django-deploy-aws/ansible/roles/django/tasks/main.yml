@@ -2,6 +2,17 @@
 # Role: django
 # App-level setup and deployment
 
+- name: Check if app repo is a git repository
+  ansible.builtin.stat:
+    path: "{{ app_dir }}/.git"
+  register: repo_git_dir
+
+- name: Remove non-git app directory to allow clean clone
+  ansible.builtin.file:
+    path: "{{ app_dir }}"
+    state: absent
+  when: not repo_git_dir.stat.exists
+
 - name: Clone application repository
   ansible.builtin.git:
     repo: "{{ repo_url }}"

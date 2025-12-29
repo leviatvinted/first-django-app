@@ -39,9 +39,13 @@
     group: root
     mode: "0755"
 
+- name: Build domain list for Let's Encrypt cert
+  ansible.builtin.set_fact:
+    certbot_domains: "{{ allowed_hosts | select('match', '.*\\..*') | select('!=' , '16-16-244-241.sslip.io') | list }}"
+
 - name: Install Let's Encrypt certificate (webroot)
   ansible.builtin.command:
-    cmd: "certbot certonly --webroot -w /var/www/certbot --non-interactive --agree-tos -m {{ letsencrypt_email }} -d {{ allowed_hosts[0] }}"
+    cmd: "certbot certonly --webroot -w /var/www/certbot --non-interactive --agree-tos -m {{ letsencrypt_email }} {% for domain in certbot_domains %}-d {{ domain }} {% endfor %}"
   register: certbot_result
   failed_when: certbot_result.rc not in [0, 1]
   changed_when: certbot_result.rc == 0
@@ -50,15 +54,16 @@
     - allowed_hosts[0] != "localhost"
     - allowed_hosts[0] != "127.0.0.1"
     - allowed_hosts[0] is match('.*\\..*')
+    - certbot_domains | length > 0
 
 - name: Check Let's Encrypt certificate presence
   ansible.builtin.stat:
     path: "/etc/letsencrypt/live/{{ allowed_hosts[0] }}/fullchain.pem"
-  register: le_cert
-  when:
-    - allowed_hosts[0] != "localhost"
-    - allowed_hosts[0] != "127.0.0.1"
-    - allowed_hosts[0] is match('.*\\..*')
+  register: le_cert_stat
+
+- name: Set Let's Encrypt cert fact
+  ansible.builtin.set_fact:
+    has_le_cert: "{{ le_cert_stat.stat.exists | default(false) }}"
 
 - name: Create dhparam file (for stronger SSL)
   ansible.builtin.command:
@@ -74,16 +79,14 @@
     - allowed_hosts[0] != "localhost"
     - allowed_hosts[0] != "127.0.0.1"
     - allowed_hosts[0] is match('.*\\..*')
-    - le_cert is defined
-    - le_cert.stat is defined
-    - le_cert.stat.exists
+    - has_le_cert
 
 - name: Generate self-signed certificate
   ansible.builtin.command:
     cmd: "openssl req -x509 -nodes -newkey rsa:2048 -days 365 -keyout /etc/ssl/selfsigned.key -out /etc/ssl/selfsigned.crt -subj \"/CN={{ allowed_hosts[0] }}\""
     creates: /etc/ssl/selfsigned.crt
   when:
-    - le_cert is not defined or (le_cert.stat is not defined) or (not le_cert.stat.exists)
+    - not has_le_cert
 
 - name: Deploy Nginx HTTPS config (self-signed)
   ansible.builtin.template:
@@ -91,7 +94,7 @@
     dest: /etc/nginx/sites-available/{{ app_name }}-https
     mode: "0644"
   when:
-    - le_cert is not defined or (le_cert.stat is not defined) or (not le_cert.stat.exists)
+    - not has_le_cert
 
 - name: Enable HTTPS site
   ansible.builtin.file:
